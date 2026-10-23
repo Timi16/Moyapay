@@ -38,7 +38,9 @@ jobs:
 
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Opt-in: set the repository variable DEPLOY_ENABLED=true (and the DEPLOY_* secrets) once the
+    # server is ready. Until then pushes to main only run the checks.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
     steps:
