@@ -48,7 +48,7 @@ function feedTitle(a: ActivityItem): string {
     case "CHECKOUT_OPENED":
       return `${a.reference} checkout opened`;
     case "FLAGGED":
-      return `Flagged for ${a.reference}`;
+      return `${a.reference} payment flagged`;
     default:
       return a.kind === "payment" ? `${a.amount ? money(a.amount) : ""} ${a.type === "UNMATCHED" ? "with no reference" : RESULT_KIND[a.type as keyof typeof RESULT_KIND] ?? ""}`.trim() : a.message;
   }
@@ -75,7 +75,8 @@ export default function Overview() {
   });
   const { data: feed } = useSWR<{ data: ActivityItem[] }>("/activity?limit=6", fetcher, { refreshInterval: 5000 });
   const spark = s ? sparkline(s.collected30d.daily) : null;
-  const first = merchant.name.split(/\s+/)[0] ?? merchant.name;
+  // A business name, not a first name: greet it in full.
+  const name = merchant.name;
   const date = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" }).format(now);
 
   return (
@@ -108,7 +109,7 @@ export default function Overview() {
         <header className="rise" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14 }}>
           <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 4 }}>
             <h1 style={{ margin: 0, fontSize: 28, letterSpacing: "-0.04em", fontWeight: 800 }}>
-              {greeting(new Date(now))}, {first}
+              {greeting(new Date(now))}, {name}
             </h1>
             <span style={{ fontSize: 14, fontWeight: 500, color: "#77748F" }}>{date} · all amounts in USDC</span>
           </div>
@@ -257,7 +258,7 @@ export default function Overview() {
                         <Icon name={look.icon} size={16} stroke={2.6} />
                       </span>
                       <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700 }}>{a.type === "FLAGGED" ? a.message.split(":")[0] : feedTitle(a)}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>{feedTitle(a)}</span>
                         <span className={a.txHash ? "mono" : undefined} style={{ fontSize: 12, color: "#77748F", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {sub}
                         </span>

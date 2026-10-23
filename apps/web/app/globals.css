@@ -165,9 +165,14 @@ button:disabled {
 .vline{transform-origin:top;animation:fillY .8s cubic-bezier(.2,.8,.2,1) .3s both}
 .bar{transform-origin:left;animation:bar .9s cubic-bezier(.2,.8,.2,1) .3s both}
 .wave{stroke-dasharray:60;animation:drawWave 1.4s cubic-bezier(.6,0,.2,1) .2s both}
+/* A tick that draws itself in. Its resting state is fully drawn, so it shows with motion off. */
+.draw-check{stroke-dasharray:30;stroke-dashoffset:0;animation:drawCheck .5s .35s ease-out both}
 .t1{animation:tick .3s .3s both}.t2{animation:tick .3s .7s both}.t3{animation:tick .3s 1.1s both}.t4{animation:tick .3s 1.5s both}.t5{animation:tick .3s 1.9s both}
 
 @media (prefers-reduced-motion: reduce) {
+  .cf {
+    display: none;
+  }
   *,
   *::before,
   *::after {

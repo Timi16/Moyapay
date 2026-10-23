@@ -30,18 +30,28 @@ const token = (verified.res.headers.get("set-cookie") ?? "").match(/mp_session=(
 if (!token) throw new Error("no session cookie");
 const cookie = `mp_session=${token}`;
 
+// A presentable name for the demo merchant.
+if (process.env.MERCHANT_NAME) await api("/auth/me", { method: "PATCH", body: JSON.stringify({ name: process.env.MERCHANT_NAME }) }, cookie);
+
 const list = async (q) => (await api(`/payment-requests?limit=100${q}`, {}, cookie)).body.data;
-const paid = (await list("&status=PAID"))[0];
-const pending = (await list("&status=PENDING"))[0];
+const paidList = await list("&status=PAID");
+// Prefer a paid request that was also paid a second time: its page shows "Second payment flagged".
+const twice = (await api("/transactions?result=ALREADY_PAID&limit=1", {}, cookie)).body.data[0];
+const paid = paidList.find((r) => r.reference === twice?.requestRef) ?? paidList[0];
 const expired = (await list("&status=EXPIRED"))[0];
 const wrong = (await api("/transactions?result=WRONG_AMOUNT&limit=1", {}, cookie)).body.data[0];
+// A fresh, untouched request for the checkout shots (the newest pending ones may be flagged).
+const pending = (
+  await api("/payment-requests", { method: "POST", body: JSON.stringify({ amount: "25", description: "Birthday cake", expiresIn: 86_400 }) }, cookie)
+).body;
 
 const browser = await chromium.launch({ channel: process.env.CHANNEL ?? undefined });
-const shot = async (name, path, { width = 1440, height = 1000, full = false, wait = 1600, before } = {}) => {
+const shot = async (name, path, { width = 1440, height = 1000, full = false, wait = 2500, before } = {}) => {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, reducedMotion: "reduce" });
   await ctx.addCookies([{ name: "mp_session", value: token, url: WEB }]);
   const page = await ctx.newPage();
-  await page.goto(`${WEB}${path}`, { waitUntil: "networkidle" });
+  await page.goto(`${WEB}${path}`, { waitUntil: "load" });
+  await page.waitForTimeout(1500);
   if (before) await before(page);
   await page.waitForTimeout(wait);
   await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: full });

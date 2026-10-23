@@ -280,7 +280,7 @@ function SignIn() {
         {step.kind === "done" && (
           <div role="status" aria-live="polite" style={{ padding: "18px 0 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
             <span className="popBig" style={{ width: 64, height: 64, borderRadius: "50%", background: "#12B76A", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 16px 30px -12px rgba(18, 183, 106, 0.7)" }}>
-              <Icon name="check" size={32} stroke={3} color="#FFFFFF" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: "drawCheck .5s .2s ease-out forwards" }} />
+              <Icon name="check" size={32} stroke={3} color="#FFFFFF" className="draw-check" />
             </span>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em" }}>You're signed in</span>

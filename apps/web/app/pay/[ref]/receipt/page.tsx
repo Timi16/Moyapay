@@ -79,7 +79,7 @@ export default function Receipt() {
         <span style={{ position: "relative", display: "inline-flex" }}>
           <span aria-hidden="true" className="no-print" style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#12B76A", animation: "ripple 1.8s ease-out infinite" }} />
           <span className="popBig" style={{ position: "relative", width: 88, height: 88, borderRadius: "50%", background: "#12B76A", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 16px 30px -12px rgba(18, 183, 106, 0.7)" }}>
-            <Icon name="check" size={44} stroke={3} color="#FFFFFF" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: "drawCheck .5s .35s ease-out forwards" }} />
+            <Icon name="check" size={44} stroke={3} color="#FFFFFF" className="draw-check" />
           </span>
         </span>
         <div className="rise d2" style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 6 }}>
