@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// The data model follows the build plan (Step 3). Additions beyond it are marked "ext".
+
+model Merchant {
+  id                   String            @id @default(cuid())
+  name                 String
+  walletAddress        String            @unique // the wallet that signs in; default destination
+  // ext: status webhooks. The signing secret is derived from SESSION_SECRET and this version,
+  // so no webhook secret is stored; rolling it bumps the version.
+  webhookUrl           String?
+  webhookEvents        String[]          @default([])
+  webhookSecretVersion Int               @default(1)
+  createdAt            DateTime          @default(now())
+  sessions             Session[]
+  apiKeys              ApiKey[]
+  requests             PaymentRequest[]
+  payments             IncomingPayment[]
+  destinations         WatcherCursor[]
+  deliveries           WebhookDelivery[]
+}
+
+// ext: one-time sign-in challenge. The wallet signs `message` (SEP-53) or the transaction.
+model AuthChallenge {
+  id        String    @id // random, sent to the client
+  address   String
+  message   String
+  txHash    String // hex hash of the challenge transaction
+  expiresAt DateTime // 5 minutes
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
+}
+
+// ext: dashboard session. The id is the keyed hash of the cookie token.
+model Session {
+  id         String   @id
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  ip         String?
+  userAgent  String?
+
+  @@index([merchantId])
+}
+
+// ext: fixed-window counters for rate limits shared by every API instance.
+model RateLimit {
+  key     String   @id
+  hits    Int
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  merchantId String
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name       String
+  prefix     String // e.g. "mp_test_4fQa", for display
+  hash       String    @unique // SHA-256 of the key; the key itself is shown once and never stored
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([merchantId])
+}
+
+enum RequestStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+model PaymentRequest {
+  id            String            @id @default(cuid())
+  merchantId    String
+  merchant      Merchant          @relation(fields: [merchantId], references: [id])
+  reference     String            @unique // "MP-" + 6 Crockford base32; the payer's memo_text
+  destination   String
+  assetCode     String
+  assetIssuer   String
+  amount        String // 7 decimals, e.g. "50.0000000"
+  amountStroops BigInt
+  description   String?
+  status        RequestStatus     @default(PENDING)
+  expiresAt     DateTime? // null = never
+  paidTxHash    String?           @unique
+  paidAt        DateTime? // ledger close time of the paying transaction
+  failedReason  String?
+  createdVia    String // ext: "dashboard" | "api"
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  payments      IncomingPayment[]
+  events        RequestEvent[]
+
+  @@index([merchantId, createdAt])
+  @@index([merchantId, status])
+  @@index([status, expiresAt])
+}
+
+enum PaymentResult {
+  MATCHED
+  UNMATCHED
+  WRONG_AMOUNT
+  WRONG_ASSET
+  ALREADY_PAID
+  LATE
+  FAILED_TX
+}
+
+enum Resolution {
+  NONE
+  ASSIGNED
+  REFUNDED
+  IGNORED
+}
+
+model IncomingPayment {
+  id              String          @id @default(cuid())
+  merchantId      String
+  merchant        Merchant        @relation(fields: [merchantId], references: [id])
+  txHash          String
+  opId            String // Horizon operation id
+  pagingToken     String // ext
+  ledger          Int
+  createdAtLedger DateTime // ledger close time
+  fromAddress     String
+  toAddress       String
+  assetCode       String
+  assetIssuer     String? // null = native XLM
+  amount          String // amount received, 7 decimals
+  amountStroops   BigInt
+  opType          String // ext: payment | path_payment_strict_receive | path_payment_strict_send
+  memo            String?
+  memoType        String // none | text | id | hash | return
+  txSuccessful    Boolean
+  resultCodes     Json? // ext: { transaction, operations[] } for a failed transaction
+  result          PaymentResult
+  reason          String
+  requestId       String?
+  request         PaymentRequest? @relation(fields: [requestId], references: [id])
+  resolution      Resolution      @default(NONE)
+  resolutionNote  String? // ext
+  resolvedAt      DateTime? // ext
+  source          String // ext: "watcher" | "verify": which path recorded it first
+  createdAt       DateTime        @default(now())
+
+  @@unique([txHash, opId]) // duplicate guard: one row per on-chain operation, ever
+  @@index([merchantId, createdAt])
+  @@index([merchantId, result])
+  @@index([requestId])
+}
+
+enum EventType {
+  CREATED
+  CHECKOUT_OPENED
+  PAYMENT_SEEN
+  PAID
+  FAILED
+  EXPIRED
+  DUPLICATE_IGNORED
+  FLAGGED
+}
+
+model RequestEvent {
+  id        String         @id @default(cuid())
+  requestId String
+  request   PaymentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  type      EventType
+  data      Json           @default("{}")
+  createdAt DateTime       @default(now())
+
+  @@index([requestId, createdAt])
+  @@index([type, createdAt])
+}
+
+// One row per watched destination. The row also records which merchant the address belongs to:
+// an address is watched for exactly one merchant.
+model WatcherCursor {
+  destination  String    @id
+  merchantId   String // ext
+  merchant     Merchant  @relation(fields: [merchantId], references: [id])
+  pagingToken  String? // last processed record; null = start at watchFrom
+  lastLedger   Int?
+  lastLedgerAt DateTime? // ext: close time of lastLedger
+  // ext: every payment to this address that closed at or before this time has been processed.
+  // The expiry cron never expires a request past this point, so a slow watcher cannot expire
+  // a request that was paid in time.
+  syncedAt     DateTime?
+  watchFrom    DateTime  @default(now()) // ext: payments before this are not MoyaPay's
+  connected    Boolean   @default(false) // ext
+  lastError    String? // ext
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([merchantId])
+}
+
+// ext: the watcher's pulse, written every few seconds. One row, id "watcher".
+model WatcherHeartbeat {
+  id               String    @id
+  beatAt           DateTime
+  latestLedger     Int?
+  latestLedgerAt   DateTime?
+  streams          Int       @default(0)
+  connectedStreams Int       @default(0)
+}
+
+enum DeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+// ext: status webhook outbox. Rows are written in the same transaction as the change they
+// announce, and the worker delivers them after the commit.
+model WebhookDelivery {
+  id             String         @id @default(cuid())
+  merchantId     String
+  merchant       Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  event          String // request.paid | request.failed | request.expired | payment.unmatched | ping
+  payload        Json
+  status         DeliveryStatus @default(PENDING)
+  attempts       Int            @default(0)
+  nextAttemptAt  DateTime       @default(now())
+  lastStatusCode Int?
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([merchantId, createdAt])
+}
