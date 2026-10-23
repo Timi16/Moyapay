@@ -79,12 +79,14 @@ export async function listWallets(): Promise<WalletOption[]> {
 
 export const walletName = (id: string) => LOOK[id]?.name ?? id;
 
-/** Selects the wallet and asks it for the account address. */
+/** Selects the wallet and asks it for the account address (the wallet's own access prompt). */
 export async function connect(walletId: string): Promise<string> {
   const k = await kit();
   try {
     k.setWallet(walletId);
-    const { address } = await k.getAddress();
+    // In kit v2, getAddress() only returns an address the kit already holds; fetchAddress() is
+    // what asks the wallet (Freighter's "allow this site" prompt) and remembers the answer.
+    const { address } = await k.fetchAddress();
     return address;
   } catch (err) {
     throw toWalletError(err, walletName(walletId));
