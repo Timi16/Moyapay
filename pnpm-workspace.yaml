@@ -9,5 +9,11 @@ allowBuilds:
   cpu-features: false
   ssh2: false
   protobufjs: false
+  # Pulled in by the wallets kit (WalletConnect). Optional native speed-ups or not needed: the
+  # JS fallbacks work, so their install scripts never run (pnpm 12 fails CI on unlisted ones).
+  "@reown/appkit": false
+  bufferutil: false
+  secp256k1: false
+  utf-8-validate: false
 overrides:
   deepmerge-ts: "^8.0.0"
