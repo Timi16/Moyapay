@@ -6,13 +6,12 @@ export function LandingMarkup() {
   return (
 <div className="lp" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", color: "#12102A", background: "#FFFFFF", overflow: "hidden", WebkitFontSmoothing: "antialiased" }}>
 
-<header className="wrap rise" style={{ paddingTop: "22px", paddingBottom: "22px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px 34px" }}>
+<header className="wrap rise" style={{ position: "relative", zIndex: 5, paddingTop: "22px", paddingBottom: "22px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px 34px" }}>
 <a href="/" aria-label="MoyaPay home" style={{ display: "flex", alignItems: "center", gap: "10px" }}><span style={{ width: "36px", height: "36px", borderRadius: "11px", background: "linear-gradient(135deg, #7C5CFF, #4527D9)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 16px -8px rgba(69, 39, 217, 0.8)" }}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 18C4.5 10 6 6 8 6c2 0 2.5 7 4 7s2-7 4-7 3.5 4 4 12" /></svg></span><span style={{ fontSize: "23px", fontWeight: "800", letterSpacing: "-0.05em", color: "#12102A" }}>moya<span style={{ color: "#5B3DF5" }}>pay</span></span></a>
 <nav aria-label="Main" style={{ display: "flex", flexWrap: "wrap", gap: "28px", fontSize: "15px", fontWeight: "600", flexGrow: "1" }}>
 <a href="#how" style={{ color: "#5B5876" }}>How it works</a><a href="#checks" style={{ color: "#5B5876" }}>Verification</a><a href="#recon" style={{ color: "#5B5876" }}>Reconciliation</a><a href="/dashboard/developers" style={{ color: "#5B5876" }}>Developers</a>
 </nav>
-<a href="/signin" style={{ fontSize: "15px", fontWeight: "700", color: "#12102A" }}>Sign in</a>
-<a href="/signin" className="btn" style={{ minHeight: "46px", padding: "0 18px", fontSize: "15px" }}>Start free</a>
+<a href="/dashboard" className="btn" style={{ minHeight: "46px", padding: "0 18px", fontSize: "15px" }}>Open app</a>
 </header>
 
 <section style={{ position: "relative" }}>

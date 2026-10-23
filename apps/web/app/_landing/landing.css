@@ -70,3 +70,6 @@
 .lp .w{display:inline-block;animation:lp-word .8s cubic-bezier(.2,.8,.2,1) both}
 @supports (animation-timeline: view()){.lp .rv{animation:lp-rise linear both;animation-timeline:view();animation-range:entry 5% cover 28%}}
 @media (prefers-reduced-motion: reduce){.lp *, .lp, .lp *::before, .lp::before, .lp *::after, .lp::after{animation:none!important;transition:none!important}}
+
+/* Decorative layers (glows, drawn paths) never catch clicks meant for the links under them. */
+.lp [aria-hidden="true"]{pointer-events:none}
