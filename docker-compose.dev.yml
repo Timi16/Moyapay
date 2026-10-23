@@ -1,0 +1,19 @@
+# Local development database. Start with: pnpm db:up
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: moyapay
+      POSTGRES_PASSWORD: moyapay
+      POSTGRES_DB: moyapay
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - moyapay-dev-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moyapay -d moyapay"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  moyapay-dev-pg:

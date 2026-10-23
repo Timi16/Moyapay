@@ -1,0 +1,20 @@
+# Add to the shared Caddyfile on the InterServer box (ask Timmy before touching DNS or Caddy).
+#
+# The web app serves the site and proxies /api/v1 to the API, so browsers only ever talk to one
+# origin. With this layout set TRUST_PROXY=2 in .env (Caddy, then the web app).
+moyapay.{$DOMAIN} {
+	encode gzip
+	reverse_proxy 127.0.0.1:3100 {
+		# Server-Sent Events (checkout status, dashboard feed): do not buffer.
+		flush_interval -1
+	}
+}
+
+# Optional: the API on its own host for server-to-server calls with API keys (TRUST_PROXY=1 only
+# applies to this host; keep it consistent with how most traffic arrives).
+api.moyapay.{$DOMAIN} {
+	encode gzip
+	reverse_proxy 127.0.0.1:4200 {
+		flush_interval -1
+	}
+}
