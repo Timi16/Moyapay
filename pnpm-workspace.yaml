@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  prisma: true
+  "@prisma/client": true
+  "@prisma/engines": true
+  esbuild: true
+  cpu-features: false
+  ssh2: false
+  protobufjs: false
+overrides:
+  deepmerge-ts: "^8.0.0"
