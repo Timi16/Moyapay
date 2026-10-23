@@ -8,12 +8,12 @@ import type {
   ResultCodes,
   VerificationCheck,
 } from "@moyapay/shared";
-import { env } from "../../config/env";
+import { env, primaryWebOrigin } from "../../config/env";
 import { describeAsset, explorerTxUrl } from "../../lib/asset";
 import { describeResultCodes } from "../../lib/stellar/resultCodes";
 
 export function payUrl(reference: string): string {
-  return `${env.WEB_ORIGIN}/pay/${reference}`;
+  return `${primaryWebOrigin}/pay/${reference}`;
 }
 
 export function serializeRequest(r: PaymentRequest): RequestDto {

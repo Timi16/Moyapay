@@ -30,7 +30,7 @@ const USDC = new Asset("USDC", USDC_ISSUER);
 const PORT = process.env.PORT ?? "4200";
 const EXTERNAL = process.env.E2E_API_URL;
 const API = `${EXTERNAL ?? `http://127.0.0.1:${PORT}`}/api/v1`;
-const ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:3000";
+const ORIGIN = (process.env.WEB_ORIGIN ?? "http://localhost:3100").split(",")[0]?.trim() ?? "http://localhost:3100";
 const USDC_PER_PAYER = "8";
 
 if (process.env.NETWORK_PASSPHRASE && process.env.NETWORK_PASSPHRASE !== PASSPHRASE) {

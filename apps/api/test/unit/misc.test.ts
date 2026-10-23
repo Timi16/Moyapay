@@ -15,6 +15,12 @@ describe(".env.example", () => {
     for (const key of Object.keys(EnvSchema.shape)) expect(example).toMatch(new RegExp(`^${key}=`, "m"));
   });
 
+  it("accepts several web origins; the first builds pay links", () => {
+    const e = loadEnv({ ...process.env, WEB_ORIGIN: "https://moyapay.xyz, https://www.moyapay.xyz,https://web-w7xe.vercel.app" });
+    expect(e.WEB_ORIGIN).toEqual(["https://moyapay.xyz", "https://www.moyapay.xyz", "https://web-w7xe.vercel.app"]);
+    expect(() => loadEnv({ ...process.env, WEB_ORIGIN: "https://moyapay.xyz/" })).toThrow(/no path or trailing slash/);
+  });
+
   it("refuses any network but testnet", () => {
     expect(() =>
       loadEnv({ ...process.env, NETWORK_PASSPHRASE: "Public Global Stellar Network ; September 2015" }),

@@ -106,6 +106,7 @@ export function buildApp(input: BuildAppDeps): BuiltApp {
   app.use(
     API_PREFIX,
     cors({
+      // Every listed origin may call the API with credentials.
       origin: env.WEB_ORIGIN,
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],

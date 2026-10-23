@@ -24,7 +24,16 @@ export const EnvSchema = z.object({
   USDC_ISSUER: z
     .string()
     .refine((v) => StrKey.isValidEd25519PublicKey(v), "must be a valid G address"),
-  WEB_ORIGIN: url.refine((v) => new URL(v).origin === v, "must be an origin with no path or trailing slash"),
+  // The web app's origin(s), comma-separated: CORS, the CSRF check and pay links. The first is
+  // the main site (used in pay links); the rest are other addresses serving the same app.
+  WEB_ORIGIN: z
+    .string()
+    .transform((v) => v.split(",").map((o) => o.trim()).filter(Boolean))
+    .refine((list) => list.length > 0, "must name at least one origin")
+    .refine(
+      (list) => list.every((o) => URL.canParse(o) && new URL(o).origin === o),
+      "each origin must have no path or trailing slash, e.g. https://moyapay.xyz",
+    ),
   COOKIE_DOMAIN: z.string().regex(/^\.?[a-z0-9.-]+$/i, "must be a domain like .moyapay.example").optional(),
   SESSION_SECRET: z
     .string()
@@ -67,4 +76,6 @@ function loadOrExit(): Env {
 }
 
 export const env: Env = loadOrExit();
+/** The main site, used to build pay links. */
+export const primaryWebOrigin: string = env.WEB_ORIGIN[0] ?? "";
 export const isProduction = env.NODE_ENV === "production";
