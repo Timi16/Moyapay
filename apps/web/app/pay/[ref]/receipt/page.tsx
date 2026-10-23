@@ -89,27 +89,27 @@ export default function Receipt() {
           </span>
         </div>
         <section className="rise d3 rcpt" aria-label="Receipt" style={{ position: "relative", width: "100%", padding: "20px 18px", borderRadius: 20, background: "#FFFFFF", border: "1px solid #ECEAF5", boxShadow: "0 20px 40px -28px rgba(69, 39, 217, 0.4)", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div className="r">
+          <div className="kv">
             <span>Amount</span>
             <span>{money(c.amount)} USDC</span>
           </div>
           {c.description && (
-            <div className="r">
+            <div className="kv">
               <span>For</span>
               <span>{c.description}</span>
             </div>
           )}
-          <div className="r">
+          <div className="kv">
             <span>Reference</span>
             <span className="mono" style={{ fontWeight: 600 }}>{c.reference}</span>
           </div>
           {c.paidAt && (
-            <div className="r">
+            <div className="kv">
               <span>Paid</span>
               <span>{whenFull(c.paidAt)}</span>
             </div>
           )}
-          <div className="r">
+          <div className="kv">
             <span>Network</span>
             <span>Stellar Testnet</span>
           </div>

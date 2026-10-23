@@ -126,9 +126,10 @@ button:disabled {
 .wl{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:0 14px;border:1px solid #ECEAF5;border-radius:16px;background:#FFFFFF;font-size:16px;font-weight:700;text-align:left;transition:border-color .2s,background .2s;color:#12102A}
 .wl:hover:not(:disabled){border-color:#5B3DF5;background:#F7F5FF;color:#12102A}
 .wl:disabled{opacity:.6}
-.r{display:flex;justify-content:space-between;gap:12px;font-size:14px}
-.rcpt .r span:first-child{color:#77748F}
-.rcpt .r span:last-child{font-weight:700;text-align:right}
+/* A label and value on one line (checkout and receipt). Not ".r": table rows use that. */
+.kv{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.rcpt .kv span:first-child{color:#77748F}
+.rcpt .kv span:last-child{font-weight:700;text-align:right}
 .cf{position:absolute;top:0;width:8px;height:12px;border-radius:2px;animation:fall 3.2s cubic-bezier(.3,.6,.5,1) both}
 
 /* ---- motion ---- */

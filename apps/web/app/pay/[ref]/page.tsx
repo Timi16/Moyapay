@@ -107,17 +107,17 @@ function Issue({ c, kind, onBack }: { c: Checkout; kind: "expired" | "wrong" | "
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "#5B5876", maxWidth: 320 }}>{M[1]}</p>
         </div>
         <section className="rise d3" style={{ width: "100%", padding: 18, borderRadius: 20, background: "#FFFFFF", border: "1px solid #ECEAF5", display: "flex", flexDirection: "column", gap: 12, textAlign: "left" }}>
-          <div className="r">
+          <div className="kv">
             <span style={{ color: "#77748F" }}>Request</span>
             <span className="mono" style={{ fontWeight: 600 }}>{c.reference}</span>
           </div>
-          <div className="r">
+          <div className="kv">
             <span style={{ color: "#77748F" }}>Asked for</span>
             <span style={{ fontWeight: 700 }}>{money(c.amount)} USDC</span>
           </div>
           {kind === "wrong" && last && (
             <>
-              <div className="r">
+              <div className="kv">
                 <span style={{ color: "#77748F" }}>You sent</span>
                 <span style={{ fontWeight: 700, color: "#B42318" }}>
                   {money(last.amount)} {last.asset.code}
@@ -132,14 +132,14 @@ function Issue({ c, kind, onBack }: { c: Checkout; kind: "expired" | "wrong" | "
             </>
           )}
           {kind === "expired" && c.expiresAt && (
-            <div className="r">
+            <div className="kv">
               <span style={{ color: "#77748F" }}>Expired</span>
               <span style={{ fontWeight: 700 }}>{when(c.expiresAt)}</span>
             </div>
           )}
           {kind === "failed" && (
             <>
-              <div className="r">
+              <div className="kv">
                 <span style={{ color: "#77748F" }}>Stellar said</span>
                 <span className="mono" style={{ fontWeight: 600, color: "#B42318" }}>{code}</span>
               </div>
