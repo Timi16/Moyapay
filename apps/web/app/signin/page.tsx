@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useSWRConfig } from "swr";
+import type { Merchant } from "@moyapay/shared";
 import { CopyButton } from "@/components/CopyButton";
 import { Icon } from "@/components/Icon";
 import { LogoTile, Wordmark } from "@/components/Logo";
@@ -20,7 +22,8 @@ interface Challenge {
 type Step =
   | { kind: "pick"; connecting?: string }
   | { kind: "confirm"; wallet: WalletOption; address: string; signing?: boolean }
-  | { kind: "name"; address: string };
+  | { kind: "name"; address: string }
+  | { kind: "done" };
 
 /** Only same-site paths are followed after sign-in. */
 function safeNext(next: string | null): string {
@@ -75,6 +78,7 @@ function ErrorBox({ text }: { text: string }) {
 
 function SignIn() {
   const router = useRouter();
+  const { mutate } = useSWRConfig();
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   const [wallets, setWallets] = useState<WalletOption[] | null>(null);
@@ -121,28 +125,41 @@ function SignIn() {
         if (err instanceof WalletError && err.code === "REJECTED") throw err;
         proof = { signedTransaction: await signTransaction(w.id, address, ch.transaction) };
       }
-      const res = await api<{ created: boolean }>("/auth/verify", { method: "POST", body: { challengeId: ch.challengeId, ...proof } });
+      const res = await api<{ created: boolean; merchant: Merchant }>("/auth/verify", {
+        method: "POST",
+        body: { challengeId: ch.challengeId, ...proof },
+      });
       if (res.created) setStep({ kind: "name", address });
-      else router.replace(next);
+      else await openApp(res.merchant);
     } catch (err) {
       setError(errorText(err));
       setStep({ kind: "confirm", wallet: w, address });
     }
   }
 
+  /**
+   * Signed in: hand the dashboard the merchant directly (replacing any "not signed in" answer
+   * it cached before), show a loading screen, then go.
+   */
+  async function openApp(merchant?: Merchant) {
+    setStep({ kind: "done" });
+    await mutate("/auth/me", merchant ? { merchant } : undefined, { revalidate: !merchant });
+    router.replace(next);
+  }
+
   async function saveName() {
-    if (!name.trim()) return router.replace(next);
+    if (!name.trim()) return openApp();
     setSaving(true);
     try {
-      await api("/auth/me", { method: "PATCH", body: { name: name.trim() } });
-      router.replace(next);
+      const res = await api<{ merchant: Merchant }>("/auth/me", { method: "PATCH", body: { name: name.trim() } });
+      await openApp(res.merchant);
     } catch (err) {
       setError(errorText(err));
       setSaving(false);
     }
   }
 
-  const at = step.kind === "pick" ? 0 : step.kind === "confirm" ? 1 : 2;
+  const at = step.kind === "pick" ? 0 : step.kind === "confirm" ? 1 : step.kind === "name" ? 2 : 3;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 16px", background: "#F6F5FB" }}>
@@ -153,7 +170,7 @@ function SignIn() {
       <section key={step.kind} className="card rise" style={{ width: "100%", maxWidth: 460, padding: 28, display: "flex", flexDirection: "column", gap: 18, borderRadius: 24 }}>
         <Steps at={at} />
 
-        {apiDown && step.kind !== "name" && (
+        {apiDown && (step.kind === "pick" || step.kind === "confirm") && (
           <div className="alert wait" role="status">
             <Icon name="warn" size={18} stroke={2.4} color="#9A5B00" style={{ flex: "0 0 auto" }} />
             <span>MoyaPay's server can't be reached right now, so signing in won't finish. You can still connect your wallet; try again shortly.</span>
@@ -258,6 +275,21 @@ function SignIn() {
               </button>
             </div>
           </>
+        )}
+
+        {step.kind === "done" && (
+          <div role="status" aria-live="polite" style={{ padding: "18px 0 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
+            <span className="popBig" style={{ width: 64, height: 64, borderRadius: "50%", background: "#12B76A", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 16px 30px -12px rgba(18, 183, 106, 0.7)" }}>
+              <Icon name="check" size={32} stroke={3} color="#FFFFFF" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: "drawCheck .5s .2s ease-out forwards" }} />
+            </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em" }}>You're signed in</span>
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, color: "#5B5876" }}>
+                <span className="spin sm" />
+                Opening your dashboard…
+              </span>
+            </div>
+          </div>
         )}
 
         {step.kind === "name" && (

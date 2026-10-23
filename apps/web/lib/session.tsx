@@ -2,7 +2,7 @@
 
 import type { Merchant } from "@moyapay/shared";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import useSWR, { type KeyedMutator } from "swr";
 import { fetcher } from "./api";
 
@@ -17,10 +17,18 @@ const SessionContext = createContext<Session | null>(null);
 export function SessionGate({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data, error, mutate } = useSWR<{ merchant: Merchant }>("/auth/me", fetcher, { shouldRetryOnError: false });
+  // Set when a check made during this visit comes back. SWR may hold an answer cached from
+  // before the merchant signed in; that must never decide the redirect.
+  const [checked, setChecked] = useState(false);
+  const { data, error, mutate } = useSWR<{ merchant: Merchant }>("/auth/me", fetcher, {
+    shouldRetryOnError: false,
+    revalidateOnMount: true,
+    onSuccess: () => setChecked(true),
+    onError: () => setChecked(true),
+  });
   // No working session, whatever the reason (signed out, expired, or the API unreachable):
   // send them to the wallet page, which explains what's wrong if it can't sign them in.
-  const noSession = Boolean(error);
+  const noSession = checked && Boolean(error) && !data;
 
   useEffect(() => {
     if (noSession) router.replace(`/signin?next=${encodeURIComponent(pathname)}`);
