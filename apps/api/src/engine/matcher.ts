@@ -49,6 +49,8 @@ export function referenceOf(op: Pick<IncomingOp, "memo" | "memoType">): { refere
 }
 
 const short = (s: string) => `${s.slice(0, 4)}…${s.slice(-4)}`;
+/** "2026-10-23 09:42:32 UTC": readable in a reason, unambiguous across time zones. */
+const utc = (d: Date) => `${d.toISOString().slice(0, 19).replace("T", " ")} UTC`;
 
 /**
  * The build plan's decision table (Step 5), checked in order:
@@ -101,10 +103,10 @@ export function decide(op: IncomingOp, req: RequestFacts | null, merchantId: str
 
   // 4. Too late. Ledger close time decides, not the server clock.
   if (req.status === "EXPIRED" || (req.expiresAt && op.ledgerClosedAt.getTime() > req.expiresAt.getTime())) {
-    const when = req.expiresAt ? ` at ${req.expiresAt.toISOString()}` : "";
+    const when = req.expiresAt ? ` at ${utc(req.expiresAt)}` : "";
     return {
       result: "LATE",
-      reason: `Arrived ${op.ledgerClosedAt.toISOString()}, after ${req.reference} expired${when}`,
+      reason: `Arrived ${utc(op.ledgerClosedAt)}, after ${req.reference} expired${when}`,
       effect: "NONE",
       linked,
     };

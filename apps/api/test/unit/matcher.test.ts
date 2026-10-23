@@ -106,7 +106,7 @@ const TABLE: {
     req: request(),
     result: "LATE",
     effect: "NONE",
-    reason: /Arrived 2026-10-23T12:00:05/,
+    reason: /^Arrived 2026-10-23 12:00:05 UTC, after MP-7KQ2XF expired at 2026-10-23 12:00:00 UTC$/,
   },
   {
     row: "5 wrong asset (XLM) -> WRONG_ASSET",
