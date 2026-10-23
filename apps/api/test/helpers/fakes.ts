@@ -99,6 +99,8 @@ export class FakeHorizon implements Horizon {
   readonly txs = new Map<string, HorizonTx>();
   readonly txRecords = new Map<string, HorizonPaymentRecord[]>();
   unreachable = false;
+  /** Accounts that don't exist on the network yet (never funded): Horizon answers 404. */
+  readonly missing = new Set<string>();
   streamsOpened = 0;
   private waiters = new Set<() => void>();
   /** Ends every open stream (like Horizon closing the connection). */
@@ -161,6 +163,7 @@ export class FakeHorizon implements Horizon {
 
   async accountPayments(address: string, cursor: string | null, limit: number): Promise<HorizonPaymentRecord[]> {
     this.check();
+    if (this.missing.has(address)) return [];
     const list = this.history.get(address) ?? [];
     return list.filter((r) => cursor === null || BigInt(r.paging_token) > BigInt(cursor)).slice(0, limit);
   }
@@ -171,6 +174,7 @@ export class FakeHorizon implements Horizon {
     opts: { signal: AbortSignal; idleMs?: number },
   ): AsyncIterable<HorizonPaymentRecord> {
     this.check();
+    if (this.missing.has(address)) throw new HorizonError("Account not found on Horizon", 404);
     this.streamsOpened++;
     const generation = this.generation;
     let last = BigInt(cursor);

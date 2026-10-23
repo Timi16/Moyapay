@@ -1,6 +1,6 @@
 import type { PrismaClient, WatcherCursor } from "@prisma/client";
 import type { Logger } from "pino";
-import { cursorForLedger, ledgerOfPagingToken, type Horizon, type HorizonPaymentRecord } from "../lib/stellar/horizon";
+import { cursorForLedger, HorizonError, ledgerOfPagingToken, type Horizon, type HorizonPaymentRecord } from "../lib/stellar/horizon";
 import { decodePaymentRecord, isSkip } from "./decode";
 import { processOperation } from "./matcher";
 import type { IncomingOp } from "./types";
@@ -16,6 +16,11 @@ const CURSOR_FLUSH_MS = 5000;
  * also picks up anything a stalled stream failed to deliver.
  */
 export const DEFAULT_IDLE_MS = 25_000;
+/**
+ * An address that doesn't exist on the network yet (a new wallet that was never funded) has
+ * nothing to stream. It is checked again this often until it exists.
+ */
+export const MISSING_ACCOUNT_RETRY_MS = 30_000;
 /** A heartbeat slower than this is logged with the time spent in each step. */
 const SLOW_HEARTBEAT_MS = 8000;
 const TX_OPTIONS = { timeout: 30_000, maxWait: 10_000 };
@@ -26,6 +31,8 @@ export interface WatcherDeps {
   logger: Logger;
   /** Recycle a stream that is silent this long (see DEFAULT_IDLE_MS). */
   idleMs?: number;
+  /** How often to look again for an account that doesn't exist yet (see MISSING_ACCOUNT_RETRY_MS). */
+  missingAccountRetryMs?: number;
   /** Test seam: runs inside the transaction after each processed payment (crash simulation). */
   afterPayment?: (op: IncomingOp) => void | Promise<void>;
 }
@@ -109,6 +116,17 @@ export class DestinationWatcher {
         await this.flushCursor(true).catch(() => undefined);
         continue;
       } catch (err) {
+        if (err instanceof HorizonError && err.status === 404) {
+          // The account doesn't exist yet: no payment can reach it, so there is nothing to miss.
+          // The catch-up above already proved the destination is up to date. Not an error and
+          // not a disconnection; look again in a while.
+          this.connected = true;
+          this.lastError = null;
+          this.failures = 0;
+          await this.flushCursor(true).catch(() => undefined);
+          await sleep(this.deps.missingAccountRetryMs ?? MISSING_ACCOUNT_RETRY_MS, signal);
+          continue;
+        }
         this.failures++;
         this.lastError = (err as Error).message.slice(0, 300);
         const level = this.failures > 1 ? "warn" : "error";

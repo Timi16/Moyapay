@@ -19,9 +19,9 @@ import {
 let controller: AbortController;
 let watcher: Watcher | null = null;
 
-async function start(horizon: FakeHorizon, idleMs = 60_000): Promise<Watcher> {
+async function start(horizon: FakeHorizon, idleMs = 60_000, missingAccountRetryMs?: number): Promise<Watcher> {
   controller = new AbortController();
-  watcher = new Watcher({ prisma, horizon, logger: silentLogger, idleMs });
+  watcher = new Watcher({ prisma, horizon, logger: silentLogger, idleMs, missingAccountRetryMs });
   await watcher.refresh(controller.signal, true);
   return watcher;
 }
@@ -147,6 +147,21 @@ describe("watcher", () => {
       return c.syncedAt?.getTime() === later.getTime();
     });
     expect(horizon.streamsOpened).toBeGreaterThanOrEqual(2);
+  });
+
+  it("a wallet that doesn't exist on testnet yet counts as watched, not broken, and is picked up once funded", async () => {
+    const horizon = new FakeHorizon();
+    const m = await createMerchant();
+    horizon.missing.add(m.walletAddress);
+    const w = await start(horizon, 60_000, 200);
+    await waitFor(async () => w.watchers[0]?.connected && w.watchers[0]?.caughtUp);
+    await w.heartbeat();
+    expect(await watcherStatus(prisma)).toMatchObject({ healthy: true, streams: { total: 1, connected: 1 } });
+    // Funded later, then paid: the watcher notices without a restart.
+    horizon.missing.delete(m.walletAddress);
+    const req = await createRequest(m);
+    horizon.addPayment(paymentRecord({ to: m.walletAddress, amount: "50", memo: req.reference }));
+    await waitFor(async () => (await statusOf(req.id)) === "PAID");
   });
 
   it("picks up a new owner of an address without restarting", async () => {
