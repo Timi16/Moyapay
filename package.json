@@ -20,6 +20,6 @@
     "screenshots": "pnpm --filter @moyapay/web exec node scripts/screenshots.mjs"
   },
   "devDependencies": {
-    "prettier": "^3.3.0"
+    "prettier": "^3.9.10"
   }
 }
